@@ -13,6 +13,8 @@ BigQuery Pulse is a web dashboard designed to fetch, organize, search, and share
   * Dynamic preset toggles for adding emojis, hashtags, or release log links.
   * Real-time SVG circular character progress ring enforcing the 280-character limit.
   * Web Intent integration to instantly post to X/Twitter or copy text.
+* **Card-level Copy Utility:** Copy the clean raw text of individual release updates to your clipboard instantly with visual success verification.
+* **Export to CSV:** Download the currently filtered list of release updates (accounting for search terms and category buttons) as a formatted `.csv` spreadsheet.
 * **Custom Theme Switcher:** Transitions smoothly between slate dark mode (default) and light mode, storing preferences inside the browser's `localStorage`.
 * **Keyboard Navigation:** Press `Ctrl + K` or `/` to focus the search input; press `Esc` to close the modal.
 

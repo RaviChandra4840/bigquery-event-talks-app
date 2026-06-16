@@ -47,7 +47,8 @@ const elements = {
     charCountText: document.getElementById('char-count-text'),
     copyTweetBtn: document.getElementById('copy-tweet-btn'),
     copyBtnText: document.getElementById('copy-btn-text'),
-    postTweetBtn: document.getElementById('post-tweet-btn')
+    postTweetBtn: document.getElementById('post-tweet-btn'),
+    exportCsvBtn: document.getElementById('export-csv-btn')
 };
 
 // ==========================================================================
@@ -145,6 +146,11 @@ function setupEventListeners() {
     // Tweet actions
     elements.copyTweetBtn.addEventListener('click', copyTweetText);
     elements.postTweetBtn.addEventListener('click', postTweetToTwitter);
+    
+    // Export CSV action
+    if (elements.exportCsvBtn) {
+        elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    }
 }
 
 // ==========================================================================
@@ -371,6 +377,16 @@ function createCardDOM(update) {
                     <span>Official Log</span>
                 </a>
             ` : ''}
+            <button class="btn-card btn-copy-card" data-id="${update.id}" aria-label="Copy update text to clipboard">
+                <svg class="icon-copy" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <svg class="icon-check hidden" viewBox="0 0 24 24" width="14" height="14" stroke="#10b981" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span class="copy-text-label">Copy Card</span>
+            </button>
             <button class="btn-card btn-tweet" data-id="${update.id}" aria-label="Draft a Tweet about this release note">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
@@ -379,6 +395,11 @@ function createCardDOM(update) {
             </button>
         </div>
     `;
+    
+    // Hook event listener directly to the Copy button
+    card.querySelector('.btn-copy-card').addEventListener('click', (e) => {
+        copyCardText(update, e.currentTarget);
+    });
     
     // Hook event listener directly to the Tweet button
     card.querySelector('.btn-tweet').addEventListener('click', () => {
@@ -529,4 +550,87 @@ function postTweetToTwitter() {
     
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank', 'noopener,noreferrer');
+}
+
+// Copy Card Text Action
+async function copyCardText(update, button) {
+    try {
+        await navigator.clipboard.writeText(update.content_text);
+        
+        const iconCopy = button.querySelector('.icon-copy');
+        const iconCheck = button.querySelector('.icon-check');
+        const label = button.querySelector('.copy-text-label');
+        
+        iconCopy.classList.add('hidden');
+        iconCheck.classList.remove('hidden');
+        label.textContent = 'Copied!';
+        button.style.color = '#10b981'; // Green color on success
+        
+        setTimeout(() => {
+            iconCopy.classList.remove('hidden');
+            iconCheck.classList.add('hidden');
+            label.textContent = 'Copy Card';
+            button.style.color = ''; // Reset style
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy card text:', err);
+        alert('Could not copy card text. Please select manually.');
+    }
+}
+
+// Export Filtered Updates to CSV
+function exportToCSV() {
+    const updatesToExport = appState.filteredUpdates;
+    if (updatesToExport.length === 0) {
+        alert("No updates match the current search or filters. Nothing to export.");
+        return;
+    }
+    
+    // CSV headers
+    const headers = ["Date", "Category", "Official Link", "Content"];
+    
+    // Convert updates list to rows
+    const rows = updatesToExport.map(u => [
+        u.date,
+        u.category,
+        u.link,
+        u.content_text
+    ]);
+    
+    // Clean and quote cells to avoid breaking CSV format
+    const escapeCSVCell = (text) => {
+        if (text === null || text === undefined) return '';
+        let val = text.toString();
+        val = val.replace(/"/g, '""'); // Double double-quotes
+        if (val.search(/("|,|\n)/g) >= 0) {
+            val = `"${val}"`;
+        }
+        return val;
+    };
+    
+    // Build CSV content string
+    const csvContent = [
+        headers.map(escapeCSVCell).join(','),
+        ...rows.map(row => row.map(escapeCSVCell).join(','))
+    ].join('\n');
+    
+    // Download trigger
+    try {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        const datestr = new Date().toISOString().split('T')[0];
+        const filename = `bigquery_releases_${appState.activeCategory}_${datestr}.csv`;
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (e) {
+        console.error('CSV Export failed:', e);
+        alert('CSV Export failed. Please try again.');
+    }
 }
