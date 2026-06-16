@@ -8,7 +8,8 @@ let appState = {
     filteredUpdates: [],
     activeCategory: 'all',
     searchQuery: '',
-    currentTweetUpdate: null
+    currentTweetUpdate: null,
+    layout: 'list' // 'list' or 'grid'
 };
 
 // DOM Elements
@@ -48,7 +49,9 @@ const elements = {
     copyTweetBtn: document.getElementById('copy-tweet-btn'),
     copyBtnText: document.getElementById('copy-btn-text'),
     postTweetBtn: document.getElementById('post-tweet-btn'),
-    exportCsvBtn: document.getElementById('export-csv-btn')
+    exportCsvBtn: document.getElementById('export-csv-btn'),
+    layoutToggleBtn: document.getElementById('layout-toggle-btn'),
+    layoutToggleLabel: document.getElementById('layout-toggle-label')
 };
 
 // ==========================================================================
@@ -56,6 +59,7 @@ const elements = {
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initLayout();
     setupEventListeners();
     fetchReleaseNotes(false); // Load cached or fresh notes on load
 });
@@ -150,6 +154,11 @@ function setupEventListeners() {
     // Export CSV action
     if (elements.exportCsvBtn) {
         elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    }
+    
+    // Layout Toggle action
+    if (elements.layoutToggleBtn) {
+        elements.layoutToggleBtn.addEventListener('click', toggleLayout);
     }
 }
 
@@ -356,6 +365,10 @@ function createCardDOM(update) {
     const categoryClass = `badge-${update.category.toLowerCase()}`;
     const cleanBadgeText = update.category;
     
+    // Check if content length is long to enable collapse/expand feature
+    const isLongContent = update.content_text.length > 280;
+    const bodyClass = isLongContent ? 'card-body collapsible' : 'card-body';
+    
     card.innerHTML = `
         <div class="card-header">
             <div class="card-meta">
@@ -363,9 +376,17 @@ function createCardDOM(update) {
                 <span class="card-date">${update.date}</span>
             </div>
         </div>
-        <div class="card-body">
+        <div class="${bodyClass}">
             ${update.content_html}
         </div>
+        ${isLongContent ? `
+            <button class="btn-read-more" aria-expanded="false" aria-label="Expand or collapse update description">
+                <span>Read More</span>
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+        ` : ''}
         <div class="card-actions">
             ${update.link ? `
                 <a href="${update.link}" target="_blank" rel="noopener" class="btn-card" aria-label="Open official GCP BigQuery release logs">
@@ -396,6 +417,30 @@ function createCardDOM(update) {
         </div>
     `;
     
+    // Hook event listener for "Read More" button if it exists
+    if (isLongContent) {
+        const readMoreBtn = card.querySelector('.btn-read-more');
+        const cardBody = card.querySelector('.card-body');
+        
+        readMoreBtn.addEventListener('click', () => {
+            const isExpanded = cardBody.classList.toggle('expanded');
+            readMoreBtn.setAttribute('aria-expanded', isExpanded);
+            
+            const btnSpan = readMoreBtn.querySelector('span');
+            const btnSvg = readMoreBtn.querySelector('svg');
+            
+            if (isExpanded) {
+                btnSpan.textContent = 'Read Less';
+                btnSvg.style.transform = 'rotate(180deg)';
+            } else {
+                btnSpan.textContent = 'Read More';
+                btnSvg.style.transform = 'rotate(0deg)';
+                // Smoothly scroll back if needed
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+    }
+
     // Hook event listener directly to the Copy button
     card.querySelector('.btn-copy-card').addEventListener('click', (e) => {
         copyCardText(update, e.currentTarget);
@@ -632,5 +677,38 @@ function exportToCSV() {
     } catch (e) {
         console.error('CSV Export failed:', e);
         alert('CSV Export failed. Please try again.');
+    }
+}
+
+// Layout Management
+function initLayout() {
+    const savedLayout = localStorage.getItem('layout') || 'list';
+    appState.layout = savedLayout;
+    applyLayout(savedLayout);
+}
+
+function toggleLayout() {
+    const targetLayout = appState.layout === 'list' ? 'grid' : 'list';
+    appState.layout = targetLayout;
+    localStorage.setItem('layout', targetLayout);
+    applyLayout(targetLayout);
+}
+
+function applyLayout(layout) {
+    const body = document.body;
+    const label = elements.layoutToggleLabel;
+    const listIcon = elements.layoutToggleBtn.querySelector('.list-layout-icon');
+    const gridIcon = elements.layoutToggleBtn.querySelector('.grid-layout-icon');
+    
+    if (layout === 'grid') {
+        body.classList.add('grid-layout');
+        if (label) label.textContent = 'List View';
+        if (listIcon) listIcon.classList.remove('hidden');
+        if (gridIcon) gridIcon.classList.add('hidden');
+    } else {
+        body.classList.remove('grid-layout');
+        if (label) label.textContent = 'Grid View';
+        if (listIcon) listIcon.classList.add('hidden');
+        if (gridIcon) gridIcon.classList.remove('hidden');
     }
 }

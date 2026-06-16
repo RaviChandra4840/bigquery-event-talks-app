@@ -1268,3 +1268,98 @@ body.theme-light .modal-footer {
         flex-grow: 1;
     }
 }
+
+/* ==========================================================================
+   GRID LAYOUT SWITCHER
+   ========================================================================== */
+.grid-layout #timeline-feed.timeline-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.grid-layout .timeline-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.25rem;
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
+}
+
+.grid-layout .timeline-date-header {
+    grid-column: 1 / -1;
+    margin-left: 0;
+    padding-left: 0;
+    margin-bottom: 0.25rem;
+}
+
+.grid-layout .timeline-date-dot {
+    display: none;
+}
+
+.grid-layout .update-card {
+    margin-left: 0;
+}
+
+.grid-layout .update-card:hover {
+    transform: translateY(-4px);
+}
+
+/* ==========================================================================
+   TRUNCATION / COLLAPSIBLE CARDS
+   ========================================================================== */
+.card-body.collapsible {
+    max-height: 105px;
+    overflow: hidden;
+    position: relative;
+    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-body.collapsible::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to top, var(--bg-card), transparent);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.card-body.collapsible.expanded {
+    max-height: 1200px;
+}
+
+.card-body.collapsible.expanded::after {
+    opacity: 0;
+}
+
+.btn-read-more {
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-start;
+    padding: 0;
+    margin-top: -0.25rem;
+    transition: color var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    outline: none;
+}
+
+.btn-read-more:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+.btn-read-more svg {
+    transition: transform 0.3s ease;
+}
+
